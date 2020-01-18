@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Topos theory</title>
+  <meta name="description" content="Postdoctoral researcher at Aarhus University">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/courses/topos-theory.html">
+</head>
+
+
+  <body>
+
+    <div class="page-content">
+      <div class="wrapper" id="category-theory-page">
+        <h1 id="reading">Reading</h1>
+
+<p>The students will read the following material:</p>
+
+<ul>
+  <li>Chapters 1-6 of “Sheaves in Geometry and Logic: A First Introduction to Topos Theory” by Saunders MacLane and Ieke Moerdijk</li>
+  <li>Sections 1-3 of the paper “First Steps In Synthetic Guarded Domain Theory:
+Step-Indexing In The Topos Of Trees” which is available on <a href="https://arxiv.org/abs/1208.3596">arXiv</a>.</li>
+</ul>
+
+<h1 id="meeting-schedule">Meeting schedule</h1>
+
+<p>We generally meet every second Wednesday at 09:00, starting February 7th.
+We meet in Lars’ office, or alternatively in Turing-230 if Lars is busy.</p>
+
+<table class="mbtablestyle">
+  <thead>
+    <tr>
+      <th style="text-align: left">Meeting</th>
+      <th style="text-align: left">Date</th>
+      <th style="text-align: left">Topic</th>
+      <th style="text-align: left">Reading</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">01</td>
+      <td style="text-align: left">Wed Feb 07</td>
+      <td style="text-align: left">Presheaf categories</td>
+      <td style="text-align: left">MM Ch. I</td>
+    </tr>
+    <tr>
+      <td style="text-align: left">02</td>
+      <td style="text-align: left">Wed Feb 21</td>
+      <td style="text-align: left">Sheaves of Sets</td>
+      <td style="text-align: left">MM Ch. II</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Where</p>
+
+<ul>
+  <li>
+    <p>MM refers to “Sheaves in Geometry and Logic: A First Introduction to Topos Theory” by Saunders MacLane and Ieke Moerdijk</p>
+  </li>
+  <li>
+    <p>TOT refers to the paper “First Steps In Synthetic Guarded Domain Theory: Step-Indexing In The Topos Of Trees”.</p>
+  </li>
+</ul>
+
+<h2 id="reading-and-meeting-notes">Reading and meeting notes</h2>
+
+<h3 id="mm-ch-i"><strong>MM Ch. I</strong></h3>
+
+<p>Generally all of the chapter is relevant. The only part which is not very
+important for the applications we are considering is the example of continuous
+G-sets.</p>
+
+<p>With that in mind Exercises 6 and 7 are not very relevant.</p>
+
+<h4 id="notes-from-the-meeting-on-feb-7"><strong>Notes from the meeting on Feb 7</strong></h4>
+
+<p>The students should do the following.</p>
+
+<ul>
+  <li>To understand the relationship between (pre)sheaves and logic you should refresh
+your understanding of how logic is modelled in hyperdoctrines by reading our <a href="http://cs.au.dk/~abizjak/documents/publications/categorical-logic-tutorial-notes.pdf">lecture notes</a>.</li>
+  <li>
+    <p>Show that for any small category ℂ, the subobjects functor</p>
+
+    <p>Sub : PSh(ℂ)ᵒᵖ → Set</p>
+
+    <p>gives rise to a hyperdoctrine as defined in the lecture notes.
+In particular solve exercise I.10 in MM, writing out the constructions explicitly</p>
+  </li>
+  <li>Consider the special case of the previous item when ℂ = ω, the poset of
+natural numbers with the usual ordering.
+Re-read about the later modality in the categorical logic tutorial notes, and
+show that the later modality can be soundly interpreted in PSh(ω).
+In particular show the soundness of Löb rule.</li>
+</ul>
+
+<h3 id="mm-ch-ii"><strong>MM Ch. II</strong></h3>
+
+<p>Generally you can skip section 3 on sheaves and manifolds. While the examples
+described therein are interesting for a variety of reasons, they are not so
+relevant in the context of modelling logic.</p>
+
+<p>Similarly section 7 on sheaves with algebraic structure is not so relevant for
+now.</p>
+
+<p>In general if your topology is a bit rusty then the connections between
+different presentations of sheaves (sections 4-6) are going to be difficult to
+understand. If you have trouble understanding some detail do not worry. Later on
+the notion of a sheaf will be generalized and made more abstract, and the
+relevant properties proved at this higher level of abstraction.
+So do not spend too much time on these sections.</p>
+
+<p>Nevertheless the more concrete presentations are useful for understanding the
+more abstract ones.</p>
+
+<p>Exercises 3, 5, 8, 10, and 11 are not too relevant. The rest are good practice.</p>
+
+<h4 id="notes-from-the-meeting-on-feb-21"><strong>Notes from the meeting on Feb 21</strong></h4>
+
+<p>Until the next meeting the students will continue working through chapter II.
+To soldify their understanding they will work out the details of the following.</p>
+
+<ul>
+  <li>
+    <p>Write out the hyperdoctrine arising from the category Sh(X) of sheaves over a
+topological space X. Reflect on how the interpretation of the logical
+connectives differs from the hyperdoctrine arising from PSh(𝓞(X)), of
+presheaves on the poset of open on the space X.</p>
+  </li>
+  <li>
+    <p>Let ω×ω be the poset ℕ × ℕ ordered lexicographically.
+ω×ω can be turned into a topological space by equipping it with the (lower)
+<a href="https://en.wikipedia.org/wiki/Alexandrov_topology">Alexandrov topology</a>,
+where the opens are exactly the downwards closed sets.</p>
+
+    <p>Specialize the constructions from the previous item to the category Sh(ω×ω).</p>
+  </li>
+  <li>
+    <p>Show that the Sh(ω×ω)-based hyperdoctrine from the previous item models a
+later operation ▷ which is monotone, satisfies the Löb rule, and commutes
+with ∧.</p>
+  </li>
+  <li>
+    <p>Show that the topos of trees based hyperdoctrine validates the
+following logical property:</p>
+
+    <p>▷∃ n : ℕ, ϕ ⊢ ∃ n : ℕ, ▷ ϕ</p>
+
+    <p>where the denotation of the ℕ is the constant presheaf of natural numbers.</p>
+  </li>
+  <li>
+    <p>Show that the property in the previous item fails in the Sh(ω×ω)-based
+hyperdoctrine. Here the denotation of ℕ is the <em>constant sheaf</em> of natural
+numbers.</p>
+  </li>
+</ul>
+
+<h4 id="notes-from-the-meeting-on-mar-7"><strong>Notes from the meeting on Mar 7</strong></h4>
+
+<p>Until the next meeting the students will work through chapter III, and
+investigate a particular sheaf topos.</p>
+
+<ul>
+  <li>
+    <p>Consider a partial commutative monoid M as defined in the lecture notes on
+categorical logic. Let ≼ be the “divisibility” preorder, i.e., x ≼ y iff there
+is a z such that y = x · z. Consider the (upwards) Alexandrov topology on M,
+i.e., the opens are the upwards closed sets.</p>
+
+    <p>Investigate the sheaf topos Sh(M). In particular investigate whether the
+canonical hyperdoctrine is a BI-hyperdoctrine in the sense of lecture
+notes on categorical logic.</p>
+  </li>
+</ul>
+
+<h3 id="mm-ch-iii"><strong>MM Ch. III</strong></h3>
+
+<p>Sections 3 and 9 of the chapter are not important, and you can skip them.
+In some of the other sections there are some references to the Zariski topology
+(which is explained in Section 3), so you should just ignore that.</p>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

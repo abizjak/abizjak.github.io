@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Iron: Managing Obligations in Higher-Order Concurrent Separation Logic</title>
+  <meta name="description" content="Postdoctoral researcher at Aarhus University">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/documents/iron-artifact/">
+</head>
+
+
+  <body>
+
+    <div class="page-content">
+      <div class="wrapper" id="category-theory-page">
+        <h1 id="iron-managing-obligations-in-higher-order-concurrent-separation-logic">Iron: Managing Obligations in Higher-Order Concurrent Separation Logic</h1>
+
+<p>This page contains the artifact for the paper “Iron: Managing
+Obligations in Higher-Order Concurrent Separation Logic”.</p>
+
+<p>The artifact comes in two formats.</p>
+
+<p><strong>Update Oct 24: Note that the version of the sources in the virtual machine is
+slightly different from the one supplied in the archive. The archive contains
+additional comments at the top of each file. The relevant theorems are the same
+and the table below linking results in the paper to the files in the Coq
+formalization applies to both version.</strong></p>
+
+<ul>
+  <li>We provide a <a href="./iron-artifact.ova">virtual machine image</a> with all the necessary tooling installed,
+and the sources already compiled. Use the following login information.
+    <ul>
+      <li>username: <strong>iron</strong></li>
+      <li>password: <strong>popl-2019</strong></li>
+    </ul>
+
+    <p>The sources are on the desktop in the <code>popl-2019-artifact</code> subdirectory.
+See below for the details of how the sources are structured.</p>
+  </li>
+  <li>We provide an <a href="iron-artifact.tar.gz">archive</a> with all the sources necessary to build our artifact.</li>
+</ul>
+
+<h2 id="what-the-artifact-contains-and-how-to-build-it">What the artifact contains, and how to build it</h2>
+
+<p>The artifact has been built and tested with the following dependencies</p>
+
+<ul>
+  <li>Coq 8.7.1 / 8.7.2 / 8.8.0</li>
+  <li>The <a href="https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp">std++ library</a> at
+commit <a href="https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp/commit/b7f1f6b178091ca6e3d363208d7875d73321903c">b7f1f6b</a>.</li>
+  <li>The <a href="https://gitlab.mpi-sws.org/FP/iris-coq/tree/robbert/wp_misc">Iris library branch wp_misc</a> at commit <a href="https://gitlab.mpi-sws.org/FP/iris-coq/commit/211075b663d827518a90ccf84ce5caa7ea84f478">211075b</a>.</li>
+</ul>
+
+<p>In the near future we plan to make the artifact compatible with the latest released
+versions of these two libraries.</p>
+
+<p>For convenience we have included all relevant dependencies in the artifact in
+the three subdirectories <code>coq-stdpp</code>, <code>iris-coq</code>, and <code>iron</code>.</p>
+
+<p>They should be installed as follows.</p>
+
+<ul>
+  <li>
+    <p>First install the <code>std++</code> library from the <code>coq-stdpp</code> directory.
+This is an extended “standard” library containing many useful data
+structures. The library may be installed with the following command (issued
+from the <code>iron-formalization</code> directory). 
+  (<strong>Note that if you have a version of Iris/coq-stdpp already installed this will overwrite that.</strong>)</p>
+
+    <pre><code>cd coq-stdpp; make &amp;&amp; make install
+</code></pre>
+  </li>
+  <li>
+    <p>Next install the modified Iris library from the <code>iris-coq</code> subdirectory.
+The <code>iris-coq</code> library implements the Iris base logic on top of which we
+build the semantics for Iron. It may be installed with the following (again
+issued from teh <code>iron-formalization</code> directory)</p>
+
+    <pre><code>cd iris-coq; make &amp;&amp; make install
+</code></pre>
+  </li>
+  <li>
+    <p>Finally, the new formalization for this paper is contained in <code>iron</code>. This directory contains the
+formalization of the Iron logic, including soundness of all the rules listed
+in the paper (see below for a guide), all the theorems of the paper (including
+a general adequacy theorem), and formal proofs in the Iron logic of all of the
+examples. It can be built by running the following from the
+<code>iron-formalization</code> directory.</p>
+
+    <pre><code>cd iron; make
+</code></pre>
+
+    <p>The expected output of this command is simply a report that all files
+compiled successfully. Neither our Iron formalization, nor iris-coq or
+coq-stdpp depend on any additional axioms to Coq, and all theorems are fully
+proved (no Admitted theorems).</p>
+  </li>
+</ul>
+
+<h2 id="differences-between-the-formalization-and-the-paper">Differences Between the Formalization and The Paper</h2>
+
+<p>There are a number of small differences between the paper presentation
+of Iron and the formalization in Coq. We briefly discuss them here.</p>
+
+<h3 id="weakest-preconditions-and-texan-triples">Weakest Preconditions and Texan Triples</h3>
+
+<p>In the paper we have worked with Hoare triples for specifying theorems and
+rules. However, following common practice in Iris, we do not use Hoare triples
+in Coq, but solely work with weakest preconditions for proofs and specifications.
+That is because weakest preconditions are more convenient to work with since
+they better integrate into the Iris Proof Mode.</p>
+
+<p>To provide some background (all of this is standard in Iris): in the paper we
+define Hoare triples as follows:</p>
+
+<pre><code>{P} e {v. Q(v)} ≜ □ (P -∗ wp e {v. Q(v)})
+</code></pre>
+
+<p>In the Coq formalization this proves to be often unwieldy. Generally
+when we has a Hoare triple <code>{P} e {v.Q(v)}</code> we use it by applying it to a
+goal of the form <code>wp e {v. Q'(v')}</code>. With this definition, we must
+first apply a lemma about the monotonicity of Hoare triples to obtain
+<code>{P} e {Q'(v)}</code> from <code>∀ v. Q(v) -∗ Q'(v)</code> and then we may apply this. In Coq
+we <em>bake in this cut</em> with so called Texan Triples, defined as follows:</p>
+
+<pre><code>{P} e {v. Q(v)} ≜
+  □ ∀ Φ : Val → iProp. P -∗ ▷ (∀ v. Q(v) -∗ Φ(v)) -∗ wp e {v. Φ(v)}
+</code></pre>
+
+<p>With this formulation we can apply <code>{P} e {v. Q(v)}</code> to any goal of the
+form <code>wp e {v. Q'(v)}</code>, saving a tedious proof step. Additionally, the fact that
+we only need to prove the implication for post-conditions under a <code>▷</code> is
+a strictly more general requirement.
+The notation for Texan triples in Coq is</p>
+
+<pre><code>{{{ P }}} e {{{ v , RET v; Q(v) }}}
+</code></pre>
+
+<h3 id="invariant-rules">Invariant Rules</h3>
+
+<p>In the paper all of the invariant rules are stated in terms of Hoare
+triples. In Coq this is a needless entangling and invariants are always
+handled through the fancy update modality (<code>|={E1,E2}=&gt;</code>), and all the these
+rules are stated using the fancy update modality too. Again, here we follow
+common practice in Iris.</p>
+
+<p>Note that since weakest preconditions (and by extension Hoare triples) are
+defined with fancy updates, the invariant rules written in terms of fancy
+updates lift easily to the ones described in the paper. For example, instead
+of the Hoare rule for invariant allocation (<code>TINV-ALLOC</code> in the paper), in
+the formalization we have <code>fcinv_alloc_named</code> from
+<code>iron/theories/iron_logic/fcinv.v</code>, which is as follows:</p>
+
+<pre><code>▷ (∀ γ. Ψ γ) -∗
+  |={E}=&gt; ∃ γ. fcinv_own γ 1 ∗ fcinv_cancel_own γ 1 ∗ fcinv N γ (Ψ γ)
+</code></pre>
+
+<p>This can be used to derive <code>TINV-ALLOC</code> when used in conjunction with
+<code>HOARE-CONS</code>. The latter rule is called <code>ht_vs</code> in
+<code>iris-coq/theories/program_logic/hoare.v</code>.</p>
+
+<p>There is a correspondence between the invariant rules presented in the
+paper with Hoare triples and those in the formalization.</p>
+
+<ul>
+  <li><code>TINV-ALLOC</code> and <code>LTINV-ALLOC</code> follow from <code>fcinv_alloc_named</code>.</li>
+  <li><code>TINV-OPEN</code> and <code>LTINV-OPEN</code> follow from <code>fcinv_open</code>.</li>
+  <li><code>TINV-DEALLOC</code> and <code>LTINV-DEALLOC</code> follow from <code>fcinv_cancel</code>.</li>
+</ul>
+
+<p>All of these theorems are proven in <code>iron/theories/iron_logic/fcinv.v</code>.</p>
+
+<p>The rules governing normal Iris invariants, such as those for <code>INV-OPEN</code>,
+are also defined using the fancy update modality. They may be found in
+<code>iris-coq/theories/base_logic/lib/invariants.v</code>.</p>
+
+<h2 id="what-is-in-iron">What is in <code>iron</code>?</h2>
+
+<p>The directory <code>iron/</code> contains the formalization of the Iron logic.</p>
+
+<ul>
+  <li>In <code>iron/theories/algebra</code> two new cameras are defined.
+    <ul>
+      <li>Improper fractions as a camera without identity with addition as
+the operation are defined in <code>iron/theories/algebra/vfrac.v</code>.</li>
+      <li>The fractional authoritative camera with improper fractions is defined in
+<code>iron/theories/algebra/vfrac_auth.v</code>.</li>
+    </ul>
+  </li>
+  <li>
+    <p>The semantics of the connectives of the lifted logic are given in
+<code>iron/theories/bi/fracpred.v</code>. Instead of taking predicates in Iris,
+we have generalize the construction to any BI logic.</p>
+
+    <p>This file does not contain a description of the lifted program logic but
+instead contains the definitions of ∧, ∗, ∀, and other BI connectives. It
+also contains all the rules specific to this logic that are used later.</p>
+  </li>
+  <li>
+    <p>The machinery for connecting the generalized proofmode from <code>iris-coq</code> to
+fractional predicates is contained in <code>iron/theories/proofmode</code>.</p>
+  </li>
+  <li>
+    <p>In <code>iron/theories/iron_logic</code> much of the core Iron logic discussed
+in Section 2 is defined.</p>
+
+    <ul>
+      <li>Uniformity with respect to fractions is defined in
+<code>iron/theories/iron_logic/iron.v</code> as <code>Uniform</code> and
+several closure properties of it are proved.</li>
+      <li>Trackable invariants as discussed in Section 2.1 are formalized
+in <code>iron/theories/iron_logic/fcinv.v</code>.</li>
+      <li>The definition of weakest preconditions from Section 4 is in
+<code>iron/theories/iron_logic/weakestpre.v</code>.</li>
+    </ul>
+  </li>
+  <li>
+    <p>The formalization specific to the λref,conc is in
+<code>iron/theories/heap_lang</code>.</p>
+
+    <ul>
+      <li>The operational semantics from Figure 2 are defined in
+<code>iron/theories/heap_lang/lang.v</code>.</li>
+      <li>The rules from Figures 1 and 4 are proven in
+<code>iron/theories/heap_lang/lifting.v</code>.</li>
+      <li>Theorems 4.1, and 4.2 are proven in <code>iron/theories/heap_lang/adequacy.v</code>.
+Theorems 2.1 and 2.2 are not stated explicitly, but follow as corollaries.</li>
+      <li>The definition of the state interpretation in terms of ghost state from
+Section 5 is in <code>iron/theories/heap_lang/heap.v</code> as <code>heap_ctx</code>. So too are
+the definitions of <code>↦</code> and <code>𝖊</code> (in the formalization called <code>perm</code>), as
+well as the corresponding theorems.</li>
+    </ul>
+  </li>
+  <li>
+    <p>All of the examples of the paper are formalized and may be found in
+<code>iron/theories/heap_lang/lib/</code>. All but one of the examples (in <code>spawn.v</code>) are formalized
+purely within the lifted logic Iron++. There is no fraction accounting in
+the proofs and no significant bookkeeping beyond what is found in
+vanilla Iris.</p>
+
+    <p>As mentioned in the paper, a small portion of <code>par</code> cannot be
+formalized in the lifted logic but in the formalization this is
+factored out into <code>spawn</code> in <code>iron/theories/heap_lang/lib/spawn.v</code>.</p>
+
+    <ul>
+      <li>The example from 3.1 is in <code>iron/theories/heap_lang/lib/resource_transfer_par.v</code>.</li>
+      <li>The example from 3.2 is in <code>iron/theories/heap_lang/lib/resource_transfer_fork.v</code>.</li>
+      <li>The example from 3.3 is in <code>iron/theories/heap_lang/lib/message_passing.v</code>.</li>
+      <li>The example from 3.4 is in <code>iron/theories/heap_lang/lib/message_passing_example.v</code>.</li>
+      <li>The example from 3.5 is in <code>iron/theories/heap_lang/lib/par.v</code>.</li>
+    </ul>
+
+    <p>Note that <code>spawn.v</code>, <code>resource_transfer_par.v</code>, and <code>resource_transfer_fork.v</code>
+use the same state transition system (from Figure 3). This is formalized in
+<code>iron/theories/heap_lang/lib/transfer_resource_sts.v</code>.</p>
+  </li>
+  <li>The lock example discussed in Section 7 is fully formalized in Coq
+in <code>iron/theories/heap_lang/lib/spin_lock_track.v</code>. This includes
+the adequacy theorem for it which is proven under the name
+<code>lock_always_freed</code>.</li>
+</ul>
+
+<h2 id="a-correspondence-of-theorems-definitions-and-examples-in-the-paper-to-the-formalization">A Correspondence of Theorems, Definitions, and Examples in the Paper to the Formalization</h2>
+
+<p>While the correspondence between the contents of the paper and the formalization
+is discussed above, we have provided an explicit table for convenience.</p>
+
+<table class="mbtableborder">
+  <thead>
+    <tr>
+      <th>Paper definition or theorem</th>
+      <th>Coq definition or theorem</th>
+      <th>File</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>The language definition in Sec. 2</td>
+      <td><code>expr</code></td>
+      <td><code>iron/theories/heap_lang/lang.v</code></td>
+    </tr>
+    <tr>
+      <td><code>𝖊</code> and <code>↪</code></td>
+      <td><code>perm</code> and <code>↦</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td>Trackable invariants</td>
+      <td><code>fcinv</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>OPerm(-, -)</code></td>
+      <td><code>fcinv_own</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>DPerm(-, -)</code></td>
+      <td><code>fcinv_cancel_own</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-FRAME</code></td>
+      <td><code>hoare_frame_r</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-VAL</code></td>
+      <td><code>ht_val</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-λ</code></td>
+      <td><code>pure_rec</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-BIND</code></td>
+      <td><code>ht_bind</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>EMP-SPLIT</code></td>
+      <td><code>perm_split</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td><code>PT-SPLIT</code></td>
+      <td><code>mapsto_uniform</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td><code>PT-DISJ</code></td>
+      <td><code>mapsto_valid_2</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-ALLOC</code></td>
+      <td><code>wp_alloc</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-FREE</code></td>
+      <td><code>wp_free</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-LOAD</code></td>
+      <td><code>wp_load</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-STORE</code></td>
+      <td><code>wp_store</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-FORK-EMP</code>/<code>HOARE-FORK-TRUE</code></td>
+      <td><code>wp_fork</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>INV-DUP</code></td>
+      <td><code>inv_persistent</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>INV-ALLOC</code></td>
+      <td><code>inv_alloc</code></td>
+      <td><code>iris-coq/theories/base_logic/lib/invariants.v</code></td>
+    </tr>
+    <tr>
+      <td><code>INV-OPEN</code></td>
+      <td><code>inv_open</code></td>
+      <td><code>iris-coq/theories/base_logic/lib/invariants.v</code></td>
+    </tr>
+    <tr>
+      <td><code>TINV-SPLIT</code></td>
+      <td><code>fcinv_own_fractional</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>TINV-DUP</code></td>
+      <td><code>fcinv_persistent</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>TINV-ALLOC</code></td>
+      <td><code>fcinv_alloc_named</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>TINV-OPEN</code></td>
+      <td><code>fcinv_open</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>TINV-DEALLOC</code></td>
+      <td><code>fcinv_cancel</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td>Uniform with respect to fractions</td>
+      <td><code>Uniform</code></td>
+      <td><code>iron/theories/iron_logic/iron.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-CONS</code></td>
+      <td><code>ht_vs</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td>The rules from Figure 2</td>
+      <td><code>head_step</code></td>
+      <td><code>iron/theories/heap_lang/lang.v</code></td>
+    </tr>
+    <tr>
+      <td>Theorem 2.1</td>
+      <td><code>heap_basic_adequacy</code></td>
+      <td><code>iron/theories/heap_lang/adequacy.v</code></td>
+    </tr>
+    <tr>
+      <td>Theorem 2.2</td>
+      <td><code>heap_all_adequacy</code></td>
+      <td><code>iron/theories/heap_lang/adequacy.v</code></td>
+    </tr>
+    <tr>
+      <td><code>HOARE-PAR</code></td>
+      <td><code>par_spec</code></td>
+      <td><code>iron/theories/heap_lang/lib/par.v</code></td>
+    </tr>
+    <tr>
+      <td>The example from 3.1</td>
+      <td><code>transfer_works1</code></td>
+      <td><code>iron/theories/heap_lang/lib/resource_transfer_par.v</code></td>
+    </tr>
+    <tr>
+      <td>The rules from Figure 3</td>
+      <td>Several theorems</td>
+      <td><code>iron/theories/heap_lang/lib/resource_transfer_sts.v</code></td>
+    </tr>
+    <tr>
+      <td>The example from 3.2</td>
+      <td><code>transfer_works1</code></td>
+      <td><code>iron/theories/heap_lang/lib/resource_transfer_fork.v</code></td>
+    </tr>
+    <tr>
+      <td>The example from 3.3</td>
+      <td>Several theorems</td>
+      <td><code>iron/theories/heap_lang/lib/message_passing.v</code></td>
+    </tr>
+    <tr>
+      <td>The queue specifications from 3.3</td>
+      <td>Several theorems in Section <code>queue_bag_spec</code></td>
+      <td><code>iron/theories/heap_lang/lib/queue.v</code></td>
+    </tr>
+    <tr>
+      <td>The example from 3.4</td>
+      <td><code>program_spec</code></td>
+      <td><code>iron/theories/heap_lang/lib/message_passing_example.v</code></td>
+    </tr>
+    <tr>
+      <td>The example from 3.5</td>
+      <td>Several theorems</td>
+      <td><code>iron/theories/heap_lang/lib/{spawn,par}.v</code></td>
+    </tr>
+    <tr>
+      <td>Definitions of lifted connectives</td>
+      <td>Several definitions</td>
+      <td><code>iron/theories/bi/fracpred.v</code></td>
+    </tr>
+    <tr>
+      <td>Definition of lifted <code>↦</code></td>
+      <td><code>↦</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-FRAME</code></td>
+      <td><code>iron_wp_frame_r</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-VAL</code></td>
+      <td><code>iron_wp_val</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-λ</code></td>
+      <td><code>pure_rec</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-BIND</code></td>
+      <td><code>iron_wp_bind</code></td>
+      <td><code>iris-coq/theories/program_logic/hoare.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LPT-DISJ</code></td>
+      <td><code>mapsto_valid_2</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-ALLOC</code></td>
+      <td><code>iron_wp_alloc</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-FREE</code></td>
+      <td><code>iron_wp_free</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-LOAD</code></td>
+      <td><code>iron_wp_load</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-STORE</code></td>
+      <td><code>iron_wp_store</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LHOARE-FORK</code></td>
+      <td><code>iron_wp_fork</code></td>
+      <td><code>iron/theories/heap_lang/lifting.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LTINV-SPLIT</code></td>
+      <td><code>fcinv_own_fractional</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LTINV-DUP</code></td>
+      <td><code>fcinv_persistent</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LTINV-ALLOC</code></td>
+      <td><code>fcinv_alloc_named</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LTINV-OPEN</code></td>
+      <td><code>fcinv_open</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td><code>LTINV-DEALLOC</code></td>
+      <td><code>fcinv_cancel</code></td>
+      <td><code>iron/theories/iron_logic/fcinv.v</code></td>
+    </tr>
+    <tr>
+      <td>Definition of Hoare triples</td>
+      <td><code>iron_wp</code></td>
+      <td><code>iron/theories/iron_logic/weakestpre.v</code></td>
+    </tr>
+    <tr>
+      <td>Theorem 4.1</td>
+      <td><code>heap_basic_adequacy</code></td>
+      <td><code>iron/theories/heap_lang/adequacy.v</code></td>
+    </tr>
+    <tr>
+      <td>Theorem 4.2</td>
+      <td><code>heap_all_adequacy</code></td>
+      <td><code>iron/theories/heap_lang/adequacy.v</code></td>
+    </tr>
+    <tr>
+      <td>Definition of WP in Section 5</td>
+      <td><code>wp_def</code></td>
+      <td><code>iris-coq/theories/program_logic/weakestpre.v</code></td>
+    </tr>
+    <tr>
+      <td>Definition of state interpretation from Section 5</td>
+      <td><code>heap_ctx</code></td>
+      <td><code>iron/theories/heap_lang/heap.v</code></td>
+    </tr>
+    <tr>
+      <td>Theorem 5.1</td>
+      <td><code>wp_strong_all_adequacy</code></td>
+      <td><code>iris-coq/theories/program_logic/adequacy.v</code></td>
+    </tr>
+    <tr>
+      <td>The lock specifications</td>
+      <td>Several theorems</td>
+      <td><code>iron/theories/heap_lang/lib/spin_lock_track.v</code></td>
+    </tr>
+    <tr>
+      <td>Adequacy for the lock</td>
+      <td><code>lock_always_freed</code></td>
+      <td><code>iron/theories/heap_lang/lib/spin_lock_track.v</code></td>
+    </tr>
+  </tbody>
+</table>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

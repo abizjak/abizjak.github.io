@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Improving the interaction of yank and latex environments</title>
+  <meta name="description" content="It often happens that I need to copy some formula or equation and paste it aspart of some other formula or equation (possibly with minor modifications). As a...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/emacs/2016/03/05/latex-environment-yank.html">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/"> Aleš Bizjak </a>
+    <div class="site-title" style="margin-left:10px;"> (ales@alesb.com)</div>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+            
+          
+        
+          
+            
+              <a class="page-link" href="/emacs/">Emacs</a>
+            
+          
+        
+          
+            
+          
+        
+          
+        
+          
+        
+          
+            
+              <a class="page-link" href="/quotes/">Quotes</a>
+            
+          
+        
+          
+            
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Improving the interaction of yank and latex environments</h1>
+    <p class="post-meta">Mar 5, 2016</p>
+  </header>
+
+  <article class="post-content">
+    <p>It often happens that I need to copy some formula or equation and paste it as
+part of some other formula or equation (possibly with minor modifications). As a
+concrete example I have somewhere in my document <code>$f(x)$</code> where <code>f</code> might be
+some complicated expression. Then somewhere else I have the partial expression
+<code>$g()$</code> and now I would like to paste <code>f(x)</code> between the parenthesis to obtain
+<code>$g(f(x))$</code>.</p>
+
+<p>This is of course easy to do by just selecting the part that I want. However the
+way moving around emacs buffers works, it is much easier<sup id="fnref:2"><a href="#fn:2" class="footnote">1</a></sup> to select and copy the
+whole expression <code>$f(x)$</code> instead of just <code>f(x)</code>. Then when pasting we will end
+up with <code>$g($f(x)$)$</code>, which is not what we want. If only there was a way to
+automatically remove the two <code>$</code> from <code>$f(x)$</code> when pasting inside a math
+environment. Well, it is easy to modify the pasting command (called yank in
+Emacs) to do this automatically. Well, easy might be an overstatement. Let’s
+just say possible. Yes, possible is a better word.</p>
+
+<p>If you do not want to read me ramble about how to do it and just want the
+modification you can get it <a href="/documents/files/latex-environment-yank.el">here</a>.</p>
+
+<p>Let us get to it then. What do we need?</p>
+
+<ul>
+  <li>
+    <p>First we need to figure out which Emacs command actually does the pasting.
+Well the user interface command for pasting is called <code>yank</code>. Just because
+calling it paste would be too ordinary and accessible. But <code>yank</code> itself just
+handles the interaction. The function that actually inserts is called
+<code>insert-for-yank</code>. It has a single argument, which is the string to be
+inserted. How does one find <code>insert-for-yank</code> I hear you ask? Obviously, one
+stares at the source code of the <code>yank</code> command.<br />
+So the idea is to advise the <code>insert-for-yank</code> function to precompose it with
+a function that will remove the desired math delimiters in the given string in
+cases when we are pasting inside a math environment.</p>
+  </li>
+  <li>
+    <p>But, Aleš, I hear you ask, how do I know when I am pasting inside a math
+environment? Well to be precise, due to how <del>broken</del> amazing TeX is,
+detecting this in general statically is probably not possible due to pesky
+issues like undecidability.<br />
+But we do not care how to do it in general. LaTeX code is in general
+relatively structured and in any case, we are only interested in the common
+case, since the point is to make the common case more efficient, or at least
+less annoying.<br />
+Stop rambling then, and answer the question. Yes Master. Well, we will be sneaky. The good
+developers of AUCTeX have already thought about detecting when we are in math
+mode in connection with syntax highlighting, so we will just use that
+information. This does mean that <code>font-lock-mode</code><sup id="fnref:1"><a href="#fn:1" class="footnote">2</a></sup> must be enabled (which
+is the default, I think). And who doesn’t use syntax highlighting anyhow?</p>
+  </li>
+</ul>
+
+<p>Now let us put these two ingredients together.</p>
+
+<p>First, the function which checks whether we are in math mode or not.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">latex-in-math-mode</span> <span class="p">()</span>
+  <span class="s">"Check if we are currently in math mode. Uses
+`math-display-delims' variable and relies on auctex to fontify
+the math mode correctly."</span>
+  <span class="p">(</span><span class="nv">interactive</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">cur</span> <span class="p">(</span><span class="nv">point</span><span class="p">)))</span>
+    <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-after</span> <span class="nv">cur</span><span class="p">)</span> <span class="mi">92</span><span class="p">)</span> <span class="c1">;; if the character we are looking at is \ then we</span>
+                            <span class="c1">;; might be looking at \end{...}. In this case we</span>
+                            <span class="c1">;; must check if the previous character is in</span>
+                            <span class="c1">;; font-latex-math-face.</span>
+        <span class="p">(</span><span class="nv">latex/check-if-math-face</span> <span class="p">(</span><span class="nv">get-text-property</span> <span class="p">(</span><span class="nb">max</span> <span class="p">(</span><span class="nb">-</span> <span class="nv">cur</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="nv">point-min</span><span class="p">))</span> <span class="ss">'face</span><span class="p">))</span>
+      <span class="c1">;; Otherwise we check as follows. The character we are looking at must be</span>
+      <span class="c1">;; in font-latex-math-face. But if we are looking at the opening $ then we must also</span>
+      <span class="c1">;; check the previous character, since $ is already in</span>
+      <span class="c1">;; font-latex-math-face.</span>
+      <span class="p">(</span><span class="nb">and</span> <span class="p">(</span><span class="nv">latex/check-if-math-face</span> <span class="p">(</span><span class="nv">get-text-property</span> <span class="nv">cur</span> <span class="ss">'face</span><span class="p">))</span>
+         <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-after</span> <span class="nv">cur</span><span class="p">)</span> <span class="mi">36</span><span class="p">)</span> <span class="c1">;; if the char we are looking at is $</span>
+             <span class="p">(</span><span class="nv">latex/check-if-math-face</span> <span class="p">(</span><span class="nv">get-text-property</span> <span class="p">(</span><span class="nb">max</span> <span class="p">(</span><span class="nb">-</span> <span class="nv">cur</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="nv">point-min</span><span class="p">))</span> <span class="ss">'face</span><span class="p">))</span>
+           <span class="no">t</span><span class="p">))</span>
+        <span class="p">)</span>
+    <span class="p">))</span></code></pre></figure>
+
+<p>This function is pretty self-explanatory. We get the <code>face</code> of the character we
+are currently looking at and check whether it is the face that AUCTeX uses for
+displaying math. The second condition eliminates some corner cases, as explained
+in the comment. Checking whether we are looking at the right face is done using
+the auxiliary function <code>latex/check-if-math-face</code>.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">latex/check-if-math-face</span> <span class="p">(</span><span class="nv">fp</span><span class="p">)</span>
+  <span class="s">"Check if `font-latex-math-face' is a face in `fp'."</span>
+  <span class="p">(</span><span class="nb">cond</span>
+   <span class="p">((</span><span class="nb">symbolp</span> <span class="nv">fp</span><span class="p">)</span> <span class="p">(</span><span class="nb">equal</span> <span class="nv">fp</span> <span class="ss">'font-latex-math-face</span><span class="p">))</span>
+   <span class="p">((</span><span class="nb">listp</span> <span class="nv">fp</span><span class="p">)</span> <span class="p">(</span><span class="nb">member</span> <span class="ss">'font-latex-math-face</span> <span class="nv">fp</span><span class="p">))</span>
+   <span class="p">)</span>
+  <span class="p">)</span></code></pre></figure>
+
+<p>The <code>face</code> of a character can be
+<a href="https://www.gnu.org/software/emacs/manual/html_node/elisp/Special-Properties.html#Special-Properties">one of four things</a>.
+We only check whether it is a symbol (in which case it must be the <code>'font-latex-math-face</code>) or
+whether it is a list, in which case it is a list of faces, and one of those must
+be <code>'font-latex-math-face</code>.</p>
+
+<p>The function that does the main work is <code>latex/remove-math-delims</code>. It uses two
+auxiliary functions <code>remove-newline-forward</code> and <code>remove-newline-backward</code> to
+deal with redundant newlines that are typically left after removing
+<code>\begin{...}</code> and <code>\end{...}</code>. It also uses the function <code>first-nsp-before</code> and
+<code>first-nsp-after</code> which were introduced in the <a href="/emacs/2016/03/05/latex-environment.html">previous post</a>.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">latex/remove-math-delims</span> <span class="p">(</span><span class="nv">str</span><span class="p">)</span>
+  <span class="s">"Remove math delimiters at the beginning and end of the given string.
+There can be whitespace at the beginning and at the end of the
+string. If it is, it is left there."</span>
+  <span class="p">(</span><span class="nv">with-temp-buffer</span> 
+    <span class="p">(</span><span class="nv">insert</span> <span class="nv">str</span><span class="p">)</span>
+    <span class="p">(</span><span class="nv">first-nsp-after</span> <span class="p">(</span><span class="nv">point-min</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">x</span> <span class="p">(</span><span class="nv">latex/start-of-math-environment</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nb">when</span> <span class="nv">x</span>
+        <span class="p">(</span><span class="nv">delete-char</span> <span class="p">(</span><span class="nb">first</span> <span class="nv">x</span><span class="p">))</span>
+        <span class="c1">;; remove the newlines as well (in case there is a newline). This</span>
+        <span class="c1">;; works better when removing \begin{...}, since otherwise there is</span>
+        <span class="c1">;; redundant space left.</span>
+        <span class="p">(</span><span class="nv">remove-newline-forward</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nv">first-nsp-before</span> <span class="p">(</span><span class="nv">point-max</span><span class="p">))</span>
+    <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">x</span> <span class="p">(</span><span class="nv">latex/end-of-math-environment</span><span class="p">)))</span>
+      <span class="p">(</span><span class="nb">when</span> <span class="nv">x</span>
+        <span class="p">(</span><span class="nv">delete-char</span> <span class="p">(</span><span class="nb">-</span> <span class="p">(</span><span class="nb">first</span> <span class="nv">x</span><span class="p">)))</span>
+        <span class="p">(</span><span class="nv">remove-newline-backward</span><span class="p">)))</span>
+    <span class="p">(</span><span class="nv">buffer-string</span><span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">remove-newline-forward</span> <span class="p">()</span>
+  <span class="s">"This is technically incorrect, but correct in practice."</span>
+  <span class="p">(</span><span class="nv">while</span> <span class="p">(</span><span class="nb">member</span> <span class="p">(</span><span class="nv">char-after</span><span class="p">)</span> <span class="p">(</span><span class="nb">list</span> <span class="mi">10</span> <span class="mi">13</span><span class="p">))</span> <span class="c1">;; 10 is \n, 13 is \r</span>
+    <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">remove-newline-backward</span> <span class="p">()</span>
+  <span class="s">"This is technically incorrect, but correct in practice."</span>
+  <span class="p">(</span><span class="nv">while</span> <span class="p">(</span><span class="nb">member</span> <span class="p">(</span><span class="nv">char-before</span><span class="p">)</span> <span class="p">(</span><span class="nb">list</span> <span class="mi">10</span> <span class="mi">13</span><span class="p">))</span> <span class="c1">;; 10 is \n, 13 is \r</span>
+    <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">-1</span><span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">)</span></code></pre></figure>
+
+<p>The function is pretty self-explanatory, except for the two calls to
+<code>latex/start-of-math-environment</code> and <code>latex/end-of-math-environment</code>. 
+These two check if we are currently looking at the beginning/end of a math
+environment. They are implemented as follows.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">latex/start-of-math-environment</span> <span class="p">()</span>
+  <span class="s">"Returns `nil' if we are not looking at the start of a math
+environment. Otherwise return the length of the start delimiter,
+e.g., 1 if $."</span>
+  <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-after</span><span class="p">)</span> <span class="mi">36</span><span class="p">)</span> <span class="p">(</span><span class="nb">list</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">;; check if we are looking at $ first</span>
+    <span class="p">(</span><span class="nv">-keep</span> <span class="nf">#'</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">pair</span><span class="p">)</span>
+               <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">looking-at-p</span> <span class="p">(</span><span class="nv">regexp-quote</span> <span class="p">(</span><span class="nb">first</span> <span class="nv">pair</span><span class="p">)))</span> <span class="p">(</span><span class="nb">length</span> <span class="p">(</span><span class="nb">first</span> <span class="nv">pair</span><span class="p">))))</span>
+           <span class="nv">math-display-delims</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">latex/end-of-math-environment</span> <span class="p">()</span>
+  <span class="s">"Returns `nil' if we are not looking at the end of a math
+environment. Otherwise return the length of the end delimiter,
+e.g., 1 if $."</span>
+  <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-before</span><span class="p">)</span> <span class="mi">36</span><span class="p">)</span> <span class="p">(</span><span class="nb">list</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">;; check if we are just after $ first</span>
+    <span class="p">(</span><span class="nv">-keep</span> <span class="nf">#'</span><span class="p">(</span><span class="k">lambda</span> <span class="p">(</span><span class="nv">pair</span><span class="p">)</span>
+               <span class="p">(</span><span class="nv">save-excursion</span> <span class="p">(</span><span class="nb">ignore-errors</span> <span class="c1">;; backward-char will signal an error if we try to go back too far</span>
+                                 <span class="p">(</span><span class="nv">backward-char</span> <span class="p">(</span><span class="nb">length</span> <span class="p">(</span><span class="nb">second</span> <span class="nv">pair</span><span class="p">)))</span>
+                                 <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">looking-at-p</span> <span class="p">(</span><span class="nv">regexp-quote</span> <span class="p">(</span><span class="nb">second</span> <span class="nv">pair</span><span class="p">)))</span>
+                                   <span class="p">(</span><span class="nb">length</span> <span class="p">(</span><span class="nb">second</span> <span class="nv">pair</span><span class="p">)))</span>
+                                 <span class="p">)))</span>
+           <span class="nv">math-display-delims</span><span class="p">)))</span></code></pre></figure>
+
+<p>These two functions need the <a href="https://github.com/magnars/dash.el">dash.el</a>
+library function <code>-keep</code>. It is really just the filter function, but sadly
+standard Emacs does not come equipped with a good, functional, list library.</p>
+
+<p>The final piece of the puzzle is the variable <code>math-display-delims</code>, which is
+exactly what is says. It is a list of math display environment deliminters.
+It should be a list of pairs, for example you could set it as</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nv">defconst</span> <span class="nv">math-display-delims</span>
+  <span class="o">'</span><span class="p">((</span><span class="s">"\\begin{align}"</span> <span class="s">"\\end{align}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\begin{align\*}"</span> <span class="s">"\\end{align\*}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\begin{displaymath}"</span> <span class="s">"\\end{displaymath}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\begin{mathpar}"</span> <span class="s">"\\end{mathpar}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\begin{equation}"</span> <span class="s">"\\end{equation}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\begin{equation*}"</span> <span class="s">"\\end{equation*}"</span><span class="p">)</span>
+    <span class="p">(</span><span class="s">"\\["</span> <span class="s">"\\]"</span><span class="p">))</span>
+  <span class="s">"Delimiters of math mode, except $."</span><span class="p">)</span></code></pre></figure>
+
+<p>Finally, after all this suffering, we can advise the <code>insert-for-yank</code> function
+to use our specially crafted <code>latex/remove-math-delims</code> to strip math delimiters
+from the inserted string when it makes sense to do so. This is done as follows</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">insert-for-yank/remove-math-delims</span> <span class="p">(</span><span class="nv">phi</span> <span class="nv">str</span><span class="p">)</span>
+  <span class="p">(</span><span class="nb">funcall</span> <span class="nv">phi</span> <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">and</span> <span class="p">(</span><span class="nb">equal</span> <span class="nv">major-mode</span> <span class="ss">'latex-mode</span><span class="p">)</span>
+                        <span class="p">(</span><span class="nv">latex-in-math-mode</span><span class="p">))</span>
+                   <span class="p">(</span><span class="nv">latex/remove-math-delims</span> <span class="nv">str</span><span class="p">)</span>
+                 <span class="nv">str</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nv">advice-add</span> <span class="ss">'insert-for-yank</span> <span class="ss">:around</span> <span class="ss">'insert-for-yank/remove-math-delims</span><span class="p">)</span></code></pre></figure>
+
+<p>That wasn’t difficult, was it? All praise Emacs the magnificent.</p>
+
+<p>Here is a demo.</p>
+
+<p><img src="/documents/gifs/latex-yank-math-environment.gif" alt="Yank in math mode demo" /></p>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:2">
+      <p>Because one can use navigation commands like <code>forward-sexp</code> and
+<code>forward-paragraph</code> more easily. <a href="#fnref:2" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:1">
+      <p>It is probably™ called <code>font-lock</code> because something like
+<code>syntax-highlighting-mode</code> would be too easy to understand. One must be
+prepared to suffer to use Emacs. <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

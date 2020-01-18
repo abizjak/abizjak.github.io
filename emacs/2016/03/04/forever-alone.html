@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Forever alone</title>
+  <meta name="description" content="If you happen to be having a birthday and there is nobody around to sing you anice song, or to wish you a happy birthday do not despair.As an aside, such a s...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/emacs/2016/03/04/forever-alone.html">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/"> Aleš Bizjak </a>
+    <div class="site-title" style="margin-left:10px;"> (ales@alesb.com)</div>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+            
+          
+        
+          
+            
+              <a class="page-link" href="/emacs/">Emacs</a>
+            
+          
+        
+          
+            
+          
+        
+          
+        
+          
+        
+          
+            
+              <a class="page-link" href="/quotes/">Quotes</a>
+            
+          
+        
+          
+            
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Forever alone</h1>
+    <p class="post-meta">Mar 4, 2016</p>
+  </header>
+
+  <article class="post-content">
+    <p>If you happen to be having a birthday and there is nobody around to sing you a
+nice song, or to wish you a happy birthday do not despair.
+As an aside, such a situation might happen because you have alienated everybody
+by constantly talking about meta this and control that, or as in <a href="https://xkcd.com/196/">xkcd 196</a>.</p>
+
+<p>But do not despair, Emacs has your back. The developers of Emacs have foreseen
+just such an eventuality and have included the aptly named
+<code>animate-birthday-present</code> function which is so kind as to ask your name and
+then animates a nice happy song for you.</p>
+
+<p>If you like surprises then include the following into your <code>.emacs</code> file and be
+surprised every year. It surprises me.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">my-birthday-p</span> <span class="p">()</span>
+    <span class="c1">;; for example February 1 is 32th day of any year</span>
+    <span class="p">(</span><span class="nb">equalp</span> <span class="mi">32</span> <span class="p">(</span><span class="nv">time-to-day-in-year</span> <span class="p">(</span><span class="nv">current-time</span><span class="p">)))</span>
+  <span class="p">)</span>
+
+<span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nv">my-birthday-p</span><span class="p">)</span>
+    <span class="p">(</span><span class="nv">animate-birthday-present</span> <span class="s">"Franz Joseph"</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">yes-or-no-p</span> <span class="s">"Continue?"</span><span class="p">))</span></code></pre></figure>
+
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

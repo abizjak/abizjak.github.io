@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Improving AUCTeX's LaTeX-environment</title>
+  <meta name="description" content="While editing a latex document it occasionally happens that I need to transforminline math (i.e. math between $ ... $ or \( ... \) delimiters) into displayma...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/emacs/2016/03/05/latex-environment.html">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/"> Aleš Bizjak </a>
+    <div class="site-title" style="margin-left:10px;"> (ales@alesb.com)</div>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+            
+          
+        
+          
+            
+              <a class="page-link" href="/emacs/">Emacs</a>
+            
+          
+        
+          
+            
+          
+        
+          
+        
+          
+        
+          
+            
+              <a class="page-link" href="/quotes/">Quotes</a>
+            
+          
+        
+          
+            
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Improving AUCTeX's LaTeX-environment</h1>
+    <p class="post-meta">Mar 5, 2016</p>
+  </header>
+
+  <article class="post-content">
+    <p>While editing a latex document it occasionally happens that I need to transform
+inline math (i.e. math between <code>$ ... $</code> or <code>\( ... \)</code> delimiters) into display
+math (I only use align, align*, displaymath or equation). For example this often
+happens after compiling and noticing that some equation or definition looks ugly
+inline or causes an overfull hbox. And we all know must not have overfull hboxes
+in ones document. Otherwise unimaginably horrible things happen. Another use
+case is when I want to change <code>\[ ... \]</code> into, say align or equation
+environment when I need to refer to it later on.</p>
+
+<p>Anyhow, I usually use <a href="https://www.gnu.org/software/auctex/">AUCTeX</a>‘s <code>C-c C-e</code>
+shortcut which asks for an environment and inserts it. An annoyance with the
+default behaviour is that it does not remove the old delimiters and therefore I
+need to manually remove them. Luckily this behaviour is not difficult to fix
+with a little bit of elisp.</p>
+
+<p>What I would like to happen is mark the whole expression and execute <code>C-c C-e</code>.
+This should insert the desired environment and clean up any of the old math
+delimiters that might have been there.</p>
+
+<p>Now let us analyze how we would do this. First we find out that <code>C-c C-e</code>
+shortcut executes the <code>LaTeX-environment</code> command, which takes care of asking
+the user for the environment name and is otherwise doing mostly bookkeeping. The
+function that actually does the insertion is the function
+<code>LaTeX-environment-menu</code>. It takes one argument, which is the environment name,
+and inserts <code>\begin{env}</code> <code>\end{env}</code> either around point or around the region,
+if it is selected.</p>
+
+<p>So what we shall do is we shall <em>advise</em> the <code>LaTeX-environment-menu</code> to clean
+up math delimiters <em>before</em> inserting the environment, in case a region is
+selected.</p>
+
+<p>We need some scaffolding first. These two auxiliary functions jump to the
+first/last non-whitespace character in a region.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">first-nsp-after</span> <span class="p">(</span><span class="nv">p</span><span class="p">)</span>
+  <span class="s">"Go up to first non-whitespace character *after* the given position."</span><span class="nv">q</span>
+  <span class="p">(</span><span class="nv">goto-char</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">skip-chars-forward</span> <span class="s">" \n\r"</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nb">defun</span> <span class="nv">first-nsp-before</span> <span class="p">(</span><span class="nv">p</span><span class="p">)</span>
+  <span class="s">"Go to just after the first non-whitespace char *before* the given position."</span>
+  <span class="p">(</span><span class="nv">goto-char</span> <span class="nv">p</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">skip-chars-backward</span> <span class="s">" \n\r"</span><span class="p">))</span></code></pre></figure>
+
+<p>The function that does the main work is the function <code>latex/remove-math-delimiters</code>.</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">latex/remove-math-delimiters</span> <span class="p">(</span><span class="nv">beg</span> <span class="nv">end</span><span class="p">)</span>
+  <span class="s">"Remove delimiters $ ... $, \[ ... \] and/or \( \) in an active
+region (if called interactively, otherwise provide a region."</span>
+  <span class="p">(</span><span class="nv">interactive</span> <span class="s">"r"</span><span class="p">)</span>
+  <span class="p">(</span><span class="nv">save-excursion</span>
+    <span class="p">(</span><span class="nv">save-restriction</span>
+      <span class="p">(</span><span class="nv">narrow-to-region</span> <span class="nv">beg</span> <span class="nv">end</span><span class="p">)</span>
+      <span class="p">(</span><span class="nv">first-nsp-after</span> <span class="p">(</span><span class="nv">point-min</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">cond</span> <span class="p">((</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-after</span><span class="p">)</span> <span class="p">(</span><span class="nv">string-to-char</span> <span class="s">"$"</span><span class="p">))</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="p">((</span><span class="nv">looking-at-p</span> <span class="s">"\\\\\\["</span><span class="p">)</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="p">((</span><span class="nv">looking-at-p</span> <span class="s">"\\\\("</span><span class="p">)</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">2</span><span class="p">)))</span>
+      
+      <span class="p">(</span><span class="nv">first-nsp-before</span> <span class="p">(</span><span class="nv">point-max</span><span class="p">))</span>
+      <span class="c1">;; if the last char is a comma or full stop try skipping it and clearing $</span>
+      <span class="c1">;; and \] before it</span>
+      <span class="c1">;; This is useful when the formula that was inlined and needs to be displayed</span>
+      <span class="c1">;; was at the end of the sentence or clause.</span>
+      <span class="p">(</span><span class="nb">when</span> <span class="p">(</span><span class="nb">member</span> <span class="p">(</span><span class="nv">char-to-string</span> <span class="p">(</span><span class="nv">char-before</span><span class="p">))</span> <span class="o">'</span><span class="p">(</span><span class="s">"."</span> <span class="s">","</span><span class="p">))</span>
+        <span class="p">(</span><span class="nv">backward-char</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">cond</span> <span class="p">((</span><span class="nb">equal</span> <span class="p">(</span><span class="nv">char-before</span><span class="p">)</span> <span class="p">(</span><span class="nv">string-to-char</span> <span class="s">"$"</span><span class="p">))</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">-1</span><span class="p">))</span>
+            <span class="p">((</span><span class="nv">looking-back</span> <span class="s">"\\\\\\]"</span><span class="p">)</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">-2</span><span class="p">))</span>
+            <span class="p">((</span><span class="nv">looking-back</span> <span class="s">"\\\\)"</span><span class="p">)</span> <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">-2</span><span class="p">))))))</span></code></pre></figure>
+
+<p>The function is pretty straightforward. All the modifications are wrapped in
+<code>save-excursion</code> and <code>save-restriction</code> macros so that the point and the
+restriction (the visible portion of the buffer) is restored to what it was
+before we did the modifications.</p>
+
+<p>Inside we first narrow the area we have to work with to the region we are given.
+Then we find the first non-blank character and if at that place we are looking
+at the start of a math environment we remove it. Then we do the same for the
+ending.</p>
+
+<p>Finally, all of this is tied together by advising the function
+<code>LaTeX-environment-menu</code> that actually inserts <code>\begin{...} ... \end{...}</code> to
+call the function <code>latex/remove-math-delimiters</code> <em>before</em> inserting environment
+delimiters. This is done as follows.</p>
+
+<figure class="highlight"><pre><code class="language-emacs" data-lang="emacs">(advice-add 'LaTeX-environment-menu :before
+            (lambda (env)
+              (when (and (use-region-p)
+                         (or (member env (list "align"
+                                               "align*"
+                                               "displaymath"
+                                               "equation"
+                                               "equation*"))))
+                (let ((deactivate-mark nil)) ;; in order to prevent deactivation
+                                             ;; of transient-mark-mode. Relies
+                                             ;; essentially on the fact that
+                                             ;; `deactivate-mark' is dynamically
+                                             ;; bound.
+                  (latex/remove-math-delimiters (region-beginning) (region-end))))))</code></pre></figure>
+
+<p>Adding a <code>before</code> advice to a function <code>f</code> replaces the function <code>f</code> with the
+<em>sequencing</em> of <code>f</code> and the function <code>ϕ</code> given in the advice: first comes <code>ϕ</code> is
+called and then <code>f</code>.</p>
+
+<p>In our case the function <code>ϕ</code> given first checks whether the region is
+active (with <code>use-region-p</code> function) and whether we are inserting an
+environment that is one of the math environments where we want to remove math
+delimiters. If it is then it calls <code>latex/remove-math-deilmiters</code> on the region.</p>
+
+<p>And that’s it. Now <code>C-c C-e</code> cleans up the old delimiters when it makes sense to
+do so. Wasn’t that easy?</p>
+
+<p>Here is an example of the improved environment insertion in action.</p>
+
+<p><img src="/documents/gifs/latex-insert-env.gif" alt="Improved environment insertion" /></p>
+
+<p>Now, some smart aleck will surely point out that this does not work correctly in
+all cases. For instance, if we now call <code>LaTeX-environment</code> when the selected
+region is <code>\$</code> then we will end up with, for example, <code>\begin{equation} \
+\end{equation}</code> which is not what we want. This problem can easily be fixed by
+making <code>latex/remove-math-delimiters</code> smarter, but since this case never occurs
+in practice for me I do not care. Especially since it is probably impossible to
+make it correct, because in TeX one can just redefine <code>$</code> to not have anything
+to do with entering math-mode at all.</p>
+
+<p>The point is to streamline the common operations and my modification achieves
+just that.</p>
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

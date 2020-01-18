@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>One sentence per line</title>
+  <meta name="description" content="When using version control and collaborating with others it is useful1 tostructure the file so that each sentence is in its own line. This way it isoften eas...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="https://abizjak.github.io/emacs/2016/03/06/latex-fill-paragraph.html">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/"> Aleš Bizjak </a>
+    <div class="site-title" style="margin-left:10px;"> (ales@alesb.com)</div>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+            
+          
+        
+          
+            
+              <a class="page-link" href="/emacs/">Emacs</a>
+            
+          
+        
+          
+            
+          
+        
+          
+        
+          
+        
+          
+            
+              <a class="page-link" href="/quotes/">Quotes</a>
+            
+          
+        
+          
+            
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">One sentence per line</h1>
+    <p class="post-meta">Mar 6, 2016</p>
+  </header>
+
+  <article class="post-content">
+    <p>When using version control and collaborating with others it is useful<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> to
+structure the file so that each sentence is in its own line. This way it is
+often easier to see what changes others have made in the diffs.</p>
+
+<p>In Emacs one often uses <code>M-q</code>, which is the <code>fill-paragaph</code> function. This
+refills (or reflows<sup id="fnref:2"><a href="#fn:2" class="footnote">2</a></sup>) the paragraph so that it is no more than <code>fill-column</code>
+characters wide. The problem with using it though is that if one changes even a
+small thing in one sentence, the whole paragraph will typically need to be
+refilled and each line will be changed. As a consequence, the diff in the
+version control commit will look as if the whole paragraph was potentially
+changed. This is terrible, horrible, abominable behavior<sup id="fnref:3"><a href="#fn:3" class="footnote">3</a></sup>.</p>
+
+<p>The way to fix it is to redefine <code>M-q</code> to fill the paragraph in such a way that
+each sentence is on its own line. Immediately a question and a problem appears.
+What <em>is</em> a <em>sentence</em>? We are in luck. Emacs developers have seen it prudent to
+think long and hard about just this problem and have blessed us with functions
+<code>forward-sentence</code> and <code>backward-sentence</code> which are just what we need.</p>
+
+<p>The plan is as follows. We will bind the shortcut <code>M-q</code> to the function
+<code>ales/fill-paragraph</code> defined below. This function will first put the whole
+paragraph that we are currently in into a single line. Then it will use
+<code>forward-sentence</code> to jump through the sentences and split the paragraph into
+lines consisting of sentences. What could be easier?</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nb">defun</span> <span class="nv">ales/fill-paragraph</span> <span class="p">(</span><span class="k">&amp;optional</span> <span class="nv">P</span><span class="p">)</span>
+  <span class="s">"When called with prefix argument call `fill-paragraph'.
+Otherwise split the current paragraph into one sentence per line."</span>
+  <span class="p">(</span><span class="nv">interactive</span> <span class="s">"P"</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="nb">not</span> <span class="nv">P</span><span class="p">)</span>
+      <span class="p">(</span><span class="nv">save-excursion</span> 
+        <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">fill-column</span> <span class="mi">12345678</span><span class="p">))</span> <span class="c1">;; relies on dynamic binding</span>
+          <span class="p">(</span><span class="nv">fill-paragraph</span><span class="p">)</span> <span class="c1">;; this will not work correctly if the paragraph is</span>
+                           <span class="c1">;; longer than 12345678 characters (in which case the</span>
+                           <span class="c1">;; file must be at least 12MB long. This is unlikely.)</span>
+          <span class="p">(</span><span class="k">let</span> <span class="p">((</span><span class="nv">end</span> <span class="p">(</span><span class="nv">save-excursion</span>
+                       <span class="p">(</span><span class="nv">forward-paragraph</span> <span class="mi">1</span><span class="p">)</span>
+                       <span class="p">(</span><span class="nv">backward-sentence</span><span class="p">)</span>
+                       <span class="p">(</span><span class="nv">point-marker</span><span class="p">))))</span>  <span class="c1">;; remember where to stop</span>
+            <span class="p">(</span><span class="nv">beginning-of-line</span><span class="p">)</span>
+            <span class="p">(</span><span class="nv">while</span> <span class="p">(</span><span class="k">progn</span> <span class="p">(</span><span class="nv">forward-sentence</span><span class="p">)</span>
+                          <span class="p">(</span><span class="nb">&lt;=</span> <span class="p">(</span><span class="nv">point</span><span class="p">)</span> <span class="p">(</span><span class="nv">marker-position</span> <span class="nv">end</span><span class="p">)))</span>
+              <span class="p">(</span><span class="nv">just-one-space</span><span class="p">)</span> <span class="c1">;; leaves only one space, point is after it</span>
+              <span class="p">(</span><span class="nv">delete-char</span> <span class="mi">-1</span><span class="p">)</span> <span class="c1">;; delete the space</span>
+              <span class="p">(</span><span class="nv">newline</span><span class="p">)</span>        <span class="c1">;; and insert a newline</span>
+              <span class="p">(</span><span class="nv">LaTeX-indent-line</span><span class="p">)</span> <span class="c1">;; I only use this in combination with late, so this makes sense</span>
+              <span class="p">))))</span>
+    <span class="c1">;; otherwise do ordinary fill paragraph</span>
+    <span class="p">(</span><span class="nv">fill-paragraph</span> <span class="nv">P</span><span class="p">)))</span></code></pre></figure>
+
+<p>Then I just bind this function to <code>M-q</code> in <code>latex-mode</code> by doing</p>
+
+<figure class="highlight"><pre><code class="language-elisp" data-lang="elisp"><span class="p">(</span><span class="nv">define-key</span> <span class="nv">LaTeX-mode-map</span> <span class="p">(</span><span class="nv">kbd</span> <span class="s">"M-q"</span><span class="p">)</span> <span class="ss">'ales/fill-paragraph</span><span class="p">)</span></code></pre></figure>
+
+<p>And we are done. Easy peasy. This almost always™ works correctly, but sometimes
+Emacs gets confused as to what a sentence is.</p>
+
+<p>Here it is in action.
+<img src="/documents/gifs/latex-fill-paragraph.gif" alt="Split paragraph into lines" /></p>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>It is a choice, as everything. At least the diffs look prettier this way. <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:2">
+      <p>It would be a miracle if Emacs used standard terminology. As I said
+  before, one must be prepared to suffer to use Emacs. It is not unlike
+  certain religions. But then again, there is no happiness without suffering. <a href="#fnref:2" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:3">
+      <p>And is something I have done until recently. Now I don’t anymore so I can
+  preach and pretend that what I do now is much better and only scrubs do
+  what I have done previously. <a href="#fnref:3" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
